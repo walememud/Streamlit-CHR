@@ -178,12 +178,16 @@ if not df.empty:
                     title_x=0.5,  # Center the title horizontally
                     title_xanchor="center",  # Ensure the title is anchored in the center
                     title_font=dict(
-                    size=24,  # Set the title font size (adjust as needed)
-                    color="black",  # Optional: set the title color
-                ),
+                        size=24,  # Set the title font size (adjust as needed)
+                        color="black",  # Optional: set the title color
+                    ),
                     xaxis_title="Percentile",
                     yaxis_title="Value",
-                    xaxis=dict(tickvals=[0, 25, 50, 75, 100], ticktext=["0", "25", "50", "75", "100"]),
+                    xaxis=dict(
+                        range=[0, 100],  # Explicitly set the range of the x-axis to cover 0-100
+                        tickvals=[0, 25, 50, 75, 100],  # Ensure these tick values appear on the axis
+                        ticktext=["0", "25", "50", "75", "100"]  # Customize the tick labels (optional)
+                    ),
                     showlegend=True,
                     template="plotly",  # Use Plotly's default color scheme
                 )
