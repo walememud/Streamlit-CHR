@@ -39,11 +39,23 @@ st.markdown(
             margin-top: -80px;  /* Adjust this to move the title just above the navbar */
         }
     </style>
-    <h1 class="title">COUNTY HEALTH RANKING DASHBOARD </h1>
+    <h1 class="title">UNITED STATES COUNTY HEALTH RANKING DASHBOARD</h1>
     ''',
     unsafe_allow_html=True
 )
 
+
+# Overview Section
+st.subheader("Overview")
+st.markdown("""
+This website generates annotated percentile charts of health indicators for the United States and its territories. Data for these charts 
+has been compiled by the County health Rankings (CHR) project, a service of the University of Wisconsin's Population Health Institute.
+The CHR project maintains data on its website on various health indicators for each of the U.S's 3000+ counties and independent cities, dating to 2010
+            
+This site provides interactive charts based on County Health Rankings (CHR) indicators for user-selected counties and states. Users can select a specific 
+indicator and year to generate the charts. Counties and states are displayed as color-coded dots on the charts. Two chart types are available: Percentile 
+Chart and Time Series Chart. Additionally, users can download the charts in PNG format for local use.
+""")
 
 # Load dataset
 min_year = 2010
