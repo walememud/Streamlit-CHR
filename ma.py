@@ -49,17 +49,13 @@ st.markdown(
 # Overview Section
 st.subheader("Overview")
 st.markdown("""
-This website provides interactive charts of health indicators for the United States and its territories. Data for these charts 
-has been compiled by the [County Health Rankings (CHR) project](https://www.countyhealthrankings.org/health-data/methodology-and-sources/data-documentation) by the University of Wisconsin's Population Health Institute. 
-The CHR project tracks various health indicators for over 3,000 counties and cities across the U.S., dating to 2010.
-
-Users can explore health data through dynamic percentile and time series charts, generated from County Health Rankings indicators for selected counties and states. 
-The charts display counties and states as color-coded dots, allowing users to compare health indicators over time or across percentiles. Users can select specific indicators, years, counties, and states to generate tailored visualizations. 
-Additionally, users can download these charts as PNG images for further analysis or local use.
+This website generates annotated percentile charts of health indicators for the United States and its territories. Data for these charts 
+has been compiled by the County health Rankings (CHR) project, a service of the University of Wisconsin's Population Health Institute.
+The CHR project maintains data on its website on various health indicators for each of the U.S's 3000+ counties and independent cities, dating to 2010
             
-This website allows users to save their filter selections and reuse them for future sessions. Once a specific county, state, indicator is chosen, 
-users can save their filter settings, making it easy to quickly revisit the same charts without needing to reapply the filters each time. This feature 
-enhances the user experience, ensuring that previously selected data views are readily accessible for ongoing analysis.
+This site provides interactive charts based on County Health Rankings (CHR) indicators for user-selected counties and states. Users can select a specific 
+indicator and year to generate the charts. Counties and states are displayed as color-coded dots on the charts. Two chart types are available: Percentile 
+Chart and Time Series Chart. Additionally, users can download the charts in PNG format for local use.
 """)
 
 # Load dataset
@@ -181,6 +177,7 @@ if not df.empty:
             "Select County(ies)", 
             options=county_options, 
             default=st.session_state.selected_counties,     # Use saved counties if available
+            default=None,  # No selection by default
             help="Search and select one or more counties"
         )
         st.session_state.selected_counties = selected_counties
@@ -193,6 +190,7 @@ if not df.empty:
             "Select Attribute(s)",
             options=attribute_options,
             default=st.session_state.selected_attributes,  # Use saved attributes if available
+            default=None,
             help="Search and select one or more attributes"
         )
         st.session_state.selected_attributes = selected_attributes
