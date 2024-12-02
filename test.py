@@ -4,7 +4,6 @@ import numpy as np
 import plotly.graph_objects as go
 from datetime import date
 import json
-import io
 
 st.set_page_config(layout="wide")  # to use the entire page width
 
@@ -20,19 +19,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Ensure Kaleido is installed and available for image export
-try:
-    import kaleido
-except ImportError:
-    st.error("Kaleido is not installed. Please install it using 'pip install kaleido'.")
-
-# Function to save chart as image
-def save_chart_as_image(fig):
-    image_buf = io.BytesIO()
-    fig.write_image(image_buf, format='png')
-    image_buf.seek(0)
-    return image_buf
-    
 # Add logo under the sidebar
 st.sidebar.image("images/etsu.png", use_column_width=True, caption="DEPARTMENT OF PUBLIC HEALTH")  # Display logo
 
@@ -90,23 +76,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Function to reset multiselect state
-def reset_multiselect(key):
-    """
-    Helper function to reset multiselect state and force re-render
-    
-    Args:
-        key (str): Unique key for the multiselect component
-    """
-    if key in st.session_state:
-        del st.session_state[key]
-
-# Initialize session state variables if not already set
-if 'selected_counties' not in st.session_state:
-    st.session_state.selected_counties = []
-if 'selected_attributes' not in st.session_state:
-    st.session_state.selected_attributes = []
-
 # Sidebar filters
 st.sidebar.markdown('<div class="gold-header">Filters</div>', unsafe_allow_html=True)
 
@@ -117,8 +86,11 @@ selected_year = st.sidebar.selectbox(
     index=0
 )
 
-# Sidebar - File upload option
-uploaded_file = st.sidebar.file_uploader("Upload Saved Filters", type="json")
+# Initialize filters if not already loaded from session or previous use
+if 'selected_counties' not in st.session_state:
+    st.session_state.selected_counties = []
+if 'selected_attributes' not in st.session_state:
+    st.session_state.selected_attributes = []
 
 # Function to save filters to session state and to a JSON file
 def save_filters_to_json():
@@ -139,6 +111,16 @@ def load_saved_filters(file):
         st.error(f"Error loading filters: {e}")
         return None
 
+# Try loading saved filters if available
+saved_filters = None
+if 'uploaded_file' in st.session_state:
+    uploaded_file = st.session_state.uploaded_file
+    if uploaded_file is not None:
+        saved_filters = load_saved_filters(uploaded_file)
+
+# Sidebar - File upload option
+uploaded_file = st.sidebar.file_uploader("Upload Saved Filters", type="json")
+
 # If a file is uploaded, update session state with its contents
 if uploaded_file is not None:
     st.session_state.uploaded_file = uploaded_file
@@ -148,9 +130,6 @@ if uploaded_file is not None:
         selected_year = saved_filters.get('selected_year', selected_year)
         st.session_state.selected_counties = saved_filters.get('selected_counties', [])
         st.session_state.selected_attributes = saved_filters.get('selected_attributes', [])
-
-# Proceed with chart generation
-chart_type = st.sidebar.selectbox("Select Chart Type", options=["Percentile Chart", "Line Chart"])
 
 # Construct filename and load dataset
 filename = f"chr{selected_year}.csv"
@@ -163,48 +142,50 @@ except FileNotFoundError:
 
 # Sidebar - Filter options
 if not df.empty:
-    # County selection with unique key and reset function
+    # County selection
     if 'County' in df.columns:
         county_options = df['County'].unique()
         selected_counties = st.sidebar.multiselect(
             "Select County(ies)", 
             options=county_options, 
             default=st.session_state.selected_counties,  # Use saved counties if available
-            help="Search and select one or more counties",
-            key='county_multiselect',  # Add a unique key
-            on_change=reset_multiselect,  # Add reset function
-            args=('county_multiselect',)  # Pass the key to the reset function
+            help="Search and select one or more counties"
         )
         st.session_state.selected_counties = selected_counties
 
-    # Attribute selection with unique key and reset function
+    # Attribute selection
     if len(df.columns) > 2:
         attribute_options = df.columns[2:]
         selected_attributes = st.sidebar.multiselect(
             "Select Attribute(s)",
             options=attribute_options,
             default=st.session_state.selected_attributes,  # Use saved attributes if available
-            help="Search and select one or more attributes",
-            key='attribute_multiselect',  # Add a unique key
-            on_change=reset_multiselect,  # Add reset function
-            args=('attribute_multiselect',)  # Pass the key to the reset function
+            help="Search and select one or more attributes"
         )
         st.session_state.selected_attributes = selected_attributes
 
-    # Combined save and download filters option
-    download_filters_button = st.sidebar.download_button(
-        label="Download Filters",
+    # Save filters option
+    save_filters_button = st.sidebar.button("Save Filters")
+    if save_filters_button:
+        save_filters_to_json()
+        st.sidebar.success("Filters saved successfully!")
+
+    # Option to download filters as JSON
+    st.sidebar.download_button(
+        label="Download Saved Filters",
         data=json.dumps({
             'selected_year': selected_year,
             'selected_counties': st.session_state.selected_counties,
             'selected_attributes': st.session_state.selected_attributes,
         }),
         file_name="filters.json",
-        mime="application/json",
-        on_click=save_filters_to_json  # Call the save function when the button is clicked
+        mime="application/json"
     )
 
-# Percentile Chart rendering
+# Proceed with chart generation as before (Percentile Chart / Time Series Chart)
+# Chart rendering
+chart_type = st.sidebar.selectbox("Select Chart Type", options=["Percentile Chart", "Line Chart"])
+
 if chart_type == "Percentile Chart":
     if not st.session_state.selected_counties:
         st.warning("Please select at least one county.")
@@ -233,7 +214,11 @@ if chart_type == "Percentile Chart":
                     mode="markers",
                     name=f"{county} (Value: {county_value:.3f})",
                     marker=dict(size=10),  # Dynamically assigns color
-                    hovertemplate=(f"County: {county}<br>Percentile: {county_percentile:.3f}<br>Value: {county_value:.3f}<br><extra></extra>"),
+                    hovertemplate=(
+                        f"County: {county}<br>"
+                        f"Percentile: {county_percentile:.3f}<br>"  # Use the correct variable for percentile
+                        f"Value: {county_value:.3f}<br><extra></extra>"
+                    ),
                 ))
 
             fig.update_layout(
@@ -248,79 +233,78 @@ if chart_type == "Percentile Chart":
                 yaxis_title="Value",
                 xaxis=dict(
                     range=[0, 100],  # Explicit
-                )
+                ))
+    # Assuming your years range and chart type selection are already set
+elif chart_type == "Line Chart":
+        if not selected_counties:
+            st.warning("Please select at least one county.")
+        elif len(selected_attributes) != 1:
+            st.warning("Please select exactly one attribute for the line chart.")
+        else:
+            attribute = selected_attributes[0]
+            years = list(range(min_year, max_year + 1))
+            data = {county: [] for county in selected_counties}
+
+            for year in years:
+                try:
+                    yearly_data = pd.read_csv(f"chr{year}.csv")
+                    
+                    # Check if the selected attribute exists in the dataset for this year
+                    if attribute not in yearly_data.columns:
+                        yearly_data[attribute] = np.nan  # Add the attribute with NaN values if it's missing
+                        
+                    for county in selected_counties:
+                        if county in yearly_data['County'].values:
+                            value = yearly_data.loc[yearly_data['County'] == county, attribute].values[0]
+                            data[county].append(value)
+                        else:
+                            data[county].append(np.nan)  # Set NaN if county not found in the year
+                except FileNotFoundError:
+                    for county in selected_counties:
+                        data[county].append(np.nan)  # Set NaN if file is not found
+
+            fig = go.Figure()
+
+            # Add traces for each county dynamically
+            for county, values in data.items():
+                fig.add_trace(go.Scatter(
+                    x=years,
+                    y=values,
+                    mode='lines+markers',
+                    name=county,
+                    hovertemplate="Year: %{x}<br>Value: %{y}<br><extra></extra>"
+                ))
+
+            fig.update_layout(
+                title=f"Trends Over Time for {attribute}",
+                title_x=0.5,  # Center the title horizontally
+                title_xanchor="center",  # Ensure the title is anchored in the center
+                title_font=dict(
+                    size=24,  # Set the title font size (adjust as needed)
+                    color="black",  # Optional: set the title color
+                ),
+                xaxis_title="Year",
+                yaxis_title=attribute,
+                showlegend=True,
+                template="plotly",
+                xaxis=dict(
+                    tickmode='array',  # Use a custom array for ticks
+                    tickvals=years,    # Specify the years to show on the x-axis
+                    ticktext=[str(year) for year in years],  # Show each year as a label
+                ),
+                width=1200,  # Set the width of the plot
+                height=600,  # Set the height of the plot
             )
+
+
             st.plotly_chart(fig)
 
-# Line Chart rendering
-elif chart_type == "Line Chart":
-    if not st.session_state.selected_counties:
-        st.warning("Please select at least one county.")
-    elif len(st.session_state.selected_attributes) != 1:
-        st.warning("Please select exactly one attribute for the line chart.")
-    else:
-        attribute = st.session_state.selected_attributes[0]
-        years = list(range(min_year, max_year + 1))
-        data = {county: [] for county in st.session_state.selected_counties}
+            # Provide the option to download the chart
+            image_buf = save_chart_as_image(fig)
+            st.download_button(
+                label="Download Line Chart as Image",
+                data=image_buf,
+                file_name=f"{attribute}_line_chart.png",
+                mime="image/png"
+            )
 
-        for year in years:
-            try:
-                yearly_data = pd.read_csv(f"chr{year}.csv")
-                
-                # Check if the selected attribute exists in the dataset for this year
-                if attribute not in yearly_data.columns:
-                    yearly_data[attribute] = np.nan  # Add the attribute with NaN values if it's missing
-                    
-                for county in st.session_state.selected_counties:
-                    if county in yearly_data['County'].values:
-                        value = yearly_data.loc[yearly_data['County'] == county, attribute].values[0]
-                        data[county].append(value)
-                    else:
-                        data[county].append(np.nan)  # Set NaN if county not found in the year
-            except FileNotFoundError:
-                for county in st.session_state.selected_counties:
-                    data[county].append(np.nan)  # Set NaN if file is not found
-
-        fig = go.Figure()
-
-        # Add traces for each county dynamically
-        for county, values in data.items():
-            fig.add_trace(go.Scatter(
-                x=years,
-                y=values,
-                mode='lines+markers',
-                name=county,
-                hovertemplate="Year: %{x}<br>Value: %{y}<br><extra></extra>"
-            ))
-
-        fig.update_layout(
-            title=f"Trends Over Time for {attribute}",
-            title_x=0.5,  # Center the title horizontally
-            title_xanchor="center",  # Ensure the title is anchored in the center
-            title_font=dict(
-                size=24,  # Set the title font size (adjust as needed)
-                color="black",  # Optional: set the title color
-            ),
-            xaxis_title="Year",
-            yaxis_title=attribute,
-            showlegend=True,
-            template="plotly",
-            xaxis=dict(
-                tickmode='array',  # Use a custom array for ticks
-                tickvals=years,    # Specify the years to show on the x-axis
-                ticktext=[str(year) for year in years],  # Show each year as a label
-            ),
-            width=1200,  # Set the width of the plot
-            height=600,  # Set the height of the plot
-        )
-
-        st.plotly_chart(fig)
-
-        # Provide the option to download the chart
-        image_buf = save_chart_as_image(fig)
-        st.download_button(
-            label="Download Line Chart as Image",
-            data=image_buf,
-            file_name=f"{attribute}_line_chart.png",
-            mime="image/png"
-        )

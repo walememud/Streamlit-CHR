@@ -4,6 +4,7 @@ import numpy as np
 import plotly.graph_objects as go
 from datetime import date
 import io
+import json
 
 st.set_page_config(layout="wide")  #to use the entire page width
 
@@ -55,6 +56,10 @@ The CHR project maintains data on its website on various health indicators for e
 This site provides interactive charts based on County Health Rankings (CHR) indicators for user-selected counties and states. Users can select a specific 
 indicator and year to generate the charts. Counties and states are displayed as color-coded dots on the charts. Two chart types are available: Percentile 
 Chart and Time Series Chart. Additionally, users can download the charts in PNG format for local use.
+            
+This website allows users to save their filter selections and reuse them for future sessions. Once a specific county, state, indicator is chosen, 
+users can save their filter settings, making it easy to quickly revisit the same charts without needing to reapply the filters each time. This feature 
+enhances the user experience, ensuring that previously selected data views are readily accessible for ongoing analysis.
 """)
 
 # Load dataset
@@ -85,6 +90,24 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+ #Function to reset multiselect state
+def reset_multiselect(key):
+    """
+    Helper function to reset multiselect state and force re-render
+    
+    Args:
+        key (str): Unique key for the multiselect component
+    """
+    if key in st.session_state:
+        del st.session_state[key]
+
+# Initialize session state variables if not already set
+if 'selected_counties' not in st.session_state:
+    st.session_state.selected_counties = []
+if 'selected_attributes' not in st.session_state:
+    st.session_state.selected_attributes = []
+
+
 # Sidebar filters
 st.sidebar.markdown('<div class="gold-header">Filters</div>', unsafe_allow_html=True)
 
@@ -94,6 +117,38 @@ selected_year = st.sidebar.selectbox(
     options=list(range(max_year, min_year - 1, -1)),
     index=0
 )
+
+
+# Function to save filters to session state and to a JSON file
+def save_filters_to_json():
+    filters = {
+        'selected_counties': st.session_state.selected_counties,
+        'selected_attributes': st.session_state.selected_attributes,
+    }
+    with open("filters.json", "w") as f:
+        json.dump(filters, f)
+
+# Sidebar - File upload option
+uploaded_file = st.sidebar.file_uploader("Upload Saved Filters", type="json")
+
+# Function to load the saved filters from the uploaded JSON file
+def load_saved_filters(file):
+    try:
+        filters = json.load(file)
+        return filters
+    except Exception as e:
+        st.error(f"Error loading filters: {e}")
+        return None
+
+# If a file is uploaded, update session state with the filter contents
+if uploaded_file is not None:
+    st.session_state.uploaded_file = uploaded_file
+    saved_filters = load_saved_filters(uploaded_file)
+    if saved_filters:
+        # Apply the loaded filters to session state
+        st.session_state.selected_counties = saved_filters.get('selected_counties', [])
+        st.session_state.selected_attributes = saved_filters.get('selected_attributes', [])
+
 
 # Add "Created by Muiz Memud" at the bottom of the the page
 st.sidebar.markdown(
@@ -125,9 +180,11 @@ if not df.empty:
         selected_counties = st.sidebar.multiselect(
             "Select County(ies)", 
             options=county_options, 
-            default=None,  # No selection by default
+            default=st.session_state.selected_counties,     # Use saved counties if available
             help="Search and select one or more counties"
         )
+        st.session_state.selected_counties = selected_counties
+
 
     # Attribute selection
     if len(df.columns) > 2:
@@ -135,10 +192,23 @@ if not df.empty:
         selected_attributes = st.sidebar.multiselect(
             "Select Attribute(s)",
             options=attribute_options,
-            default=None,
+            default=st.session_state.selected_attributes,  # Use saved attributes if available
             help="Search and select one or more attributes"
         )
+        st.session_state.selected_attributes = selected_attributes
 
+            # Combined save and download filters option
+    download_filters_button = st.sidebar.download_button(
+        label="Download Filters",
+        data=json.dumps({
+            'selected_year': selected_year,
+            'selected_counties': st.session_state.selected_counties,
+            'selected_attributes': st.session_state.selected_attributes,
+        }),
+        file_name="filters.json",
+        mime="application/json",
+        on_click=save_filters_to_json  # Call the save function when the button is clicked
+    )
 
     # Function to save chart as an image
     def save_chart_as_image(fig):
@@ -288,4 +358,3 @@ if not df.empty:
                 file_name=f"{attribute}_line_chart.png",
                 mime="image/png"
             )
-
