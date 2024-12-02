@@ -49,13 +49,17 @@ st.markdown(
 # Overview Section
 st.subheader("Overview")
 st.markdown("""
-This website generates annotated percentile charts of health indicators for the United States and its territories. Data for these charts 
-has been compiled by the County health Rankings (CHR) project, a service of the University of Wisconsin's Population Health Institute.
-The CHR project maintains data on its website on various health indicators for each of the U.S's 3000+ counties and independent cities, dating to 2010
+This website provides interactive charts of health indicators for the United States and its territories. Data for these charts 
+has been compiled by the [County Health Rankings (CHR) project](https://www.countyhealthrankings.org/health-data/methodology-and-sources/data-documentation) by the University of Wisconsin's Population Health Institute. 
+The CHR project tracks various health indicators for over 3,000 counties and cities across the U.S., dating to 2010.
+
+Users can explore health data through dynamic percentile and time series charts, generated from County Health Rankings indicators for selected counties and states. 
+The charts display counties and states as color-coded dots, allowing users to compare health indicators over time or across percentiles. Users can select specific indicators, years, counties, and states to generate tailored visualizations. 
+Additionally, users can download these charts as PNG images for further analysis or local use.
             
-This site provides interactive charts based on County Health Rankings (CHR) indicators for user-selected counties and states. Users can select a specific 
-indicator and year to generate the charts. Counties and states are displayed as color-coded dots on the charts. Two chart types are available: Percentile 
-Chart and Time Series Chart. Additionally, users can download the charts in PNG format for local use.
+This website allows users to save their filter selections and reuse them for future sessions. Once a specific county, state, indicator is chosen, 
+users can save their filter settings, making it easy to quickly revisit the same charts without needing to reapply the filters each time. This feature 
+enhances the user experience, ensuring that previously selected data views are readily accessible for ongoing analysis.
 """)
 
 # Load dataset
@@ -170,30 +174,71 @@ if not df.empty:
     # Chart type selection
     chart_type = st.sidebar.selectbox("Select Chart Type", ["Percentile Chart", "Line Chart"])
 
-    # County selection
-    if 'County' in df.columns:
-        county_options = df['County'].unique()
+# County selection
+if 'County' in df.columns:
+    county_options = df['County'].unique()
+    
+    # Set default behavior based on whether a file is uploaded
+    if uploaded_file:
+        if not st.session_state.selected_counties:  # If no counties have been selected yet
+            selected_counties = st.sidebar.multiselect(
+                "Select County(ies)", 
+                options=county_options, 
+                default=None,  # Default to None to avoid double-click issue
+                help="Search and select one or more counties"
+            )
+        else:
+            selected_counties = st.sidebar.multiselect(
+                "Select County(ies)", 
+                options=county_options, 
+                default=st.session_state.selected_counties,  # Use session state if file is uploaded
+                help="Search and select one or more counties"
+            )
+    else:
         selected_counties = st.sidebar.multiselect(
             "Select County(ies)", 
             options=county_options, 
-            default=st.session_state.selected_counties,     # Use saved counties if available
-            default=None,  # No selection by default
+            default=None,  # Default to None when no file is uploaded
             help="Search and select one or more counties"
         )
+    
+    # Update session state only if the selection changes
+    if selected_counties != st.session_state.selected_counties:
         st.session_state.selected_counties = selected_counties
 
 
-    # Attribute selection
-    if len(df.columns) > 2:
-        attribute_options = df.columns[2:]
+# Attribute selection
+if len(df.columns) > 2:
+    attribute_options = df.columns[2:]
+
+    # Determine the default behavior based on whether a file is uploaded or not
+    if uploaded_file:
+        if not st.session_state.selected_attributes:  # If no attributes have been selected yet
+            selected_attributes = st.sidebar.multiselect(
+                "Select Attribute(s)",
+                options=attribute_options,
+                default=None,  # Default to None to avoid double-click issue
+                help="Search and select one or more attributes"
+            )
+        else:
+            selected_attributes = st.sidebar.multiselect(
+                "Select Attribute(s)",
+                options=attribute_options,
+                default=st.session_state.selected_attributes,  # Use session state if file is uploaded
+                help="Search and select one or more attributes"
+            )
+    else:
         selected_attributes = st.sidebar.multiselect(
             "Select Attribute(s)",
             options=attribute_options,
-            default=st.session_state.selected_attributes,  # Use saved attributes if available
-            default=None,
+            default=None,  # Default to None when no file is uploaded
             help="Search and select one or more attributes"
         )
+
+    # Update session state only if the selection changes
+    if selected_attributes != st.session_state.selected_attributes:
         st.session_state.selected_attributes = selected_attributes
+
 
             # Combined save and download filters option
     download_filters_button = st.sidebar.download_button(
