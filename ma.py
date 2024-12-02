@@ -13,7 +13,7 @@ st.markdown(
     """
     <style>
     [data-testid="stSidebar"] {
-        background-color: #FFC72C; /* Blue color */
+        background-color: #FFC72C; /* Golden Yellow color */
     }
     </style>
     """,
@@ -107,7 +107,6 @@ if 'selected_counties' not in st.session_state:
 if 'selected_attributes' not in st.session_state:
     st.session_state.selected_attributes = []
 
-
 # Sidebar filters
 st.sidebar.markdown('<div class="gold-header">Filters</div>', unsafe_allow_html=True)
 
@@ -117,7 +116,6 @@ selected_year = st.sidebar.selectbox(
     options=list(range(max_year, min_year - 1, -1)),
     index=0
 )
-
 
 # Function to save filters to session state and to a JSON file
 def save_filters_to_json():
@@ -149,8 +147,7 @@ if uploaded_file is not None:
         st.session_state.selected_counties = saved_filters.get('selected_counties', [])
         st.session_state.selected_attributes = saved_filters.get('selected_attributes', [])
 
-
-# Add "Created by Muiz Memud" at the bottom of the the page
+# Add "Developed by Muiz Memud" at the bottom of the the page
 st.sidebar.markdown(
     """
     <div style="position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 14px; color: #00053E;">
@@ -172,7 +169,7 @@ except FileNotFoundError:
 # Ensure the dataset has data before proceeding
 if not df.empty:
     # Chart type selection
-    chart_type = st.sidebar.selectbox("Select Chart Type", ["Percentile Chart", "Line Chart"])
+    chart_type = st.sidebar.selectbox("Select Chart Type", ["Percentile Chart", "Time Series"])
 
 # County selection
 if 'County' in df.columns:
@@ -240,7 +237,7 @@ if len(df.columns) > 2:
         st.session_state.selected_attributes = selected_attributes
 
 
-            # Combined save and download filters option
+    # Combined save and download filters option
     download_filters_button = st.sidebar.download_button(
         label="Download Filters",
         data=json.dumps({
@@ -257,7 +254,7 @@ if len(df.columns) > 2:
     def save_chart_as_image(fig):
         # Create an in-memory buffer to save the figure
         buf = io.BytesIO()
-        fig.update_layout(template="plotly")  # Use default template for consistency
+        fig.update_layout(template="plotly")
         fig.write_image(buf, format="png", engine="kaleido")
         buf.seek(0)
         return buf
@@ -286,35 +283,35 @@ if len(df.columns) > 2:
                     
                     # Add scatter points dynamically with default color scheme
                     fig.add_trace(go.Scatter(
-                        x=[county_percentile],  # This is the x data
-                        y=[county_value],  # This is the y data
+                        x=[county_percentile], 
+                        y=[county_value],  
                         mode="markers",
                         name=f"{county} (Value: {county_value:.3f})",
-                        marker=dict(size=10),  # Dynamically assigns color
+                        marker=dict(size=10),  
                         hovertemplate=(
                             f"County: {county}<br>"
-                            f"Percentile: {county_percentile:.3f}<br>"  # Use the correct variable for percentile
+                            f"Percentile: {county_percentile:.3f}<br>" 
                             f"Value: {county_value:.3f}<br><extra></extra>"
                         ),
                     ))
 
                 fig.update_layout(
                     title=f"Percentile Distribution for {attribute}",
-                    title_x=0.5,  # Center the title horizontally
-                    title_xanchor="center",  # Ensure the title is anchored in the center
+                    title_x=0.5,  
+                    title_xanchor="center", 
                     title_font=dict(
-                        size=24,  # Set the title font size (adjust as needed)
-                        color="black",  # Optional: set the title color
+                        size=24, 
+                        color="black", 
                     ),
                     xaxis_title="Percentile",
                     yaxis_title="Value",
                     xaxis=dict(
-                        range=[0, 100],  # Explicitly set the range of the x-axis to cover 0-100
-                        tickvals=[0, 25, 50, 75, 100],  # Ensure these tick values appear on the axis
-                        ticktext=["0", "25", "50", "75", "100"]  # Customize the tick labels (optional)
+                        range=[0, 100],  
+                        tickvals=[0, 25, 50, 75, 100],  
+                        ticktext=["0", "25", "50", "75", "100"] 
                     ),
                     showlegend=True,
-                    template="plotly",  # Use Plotly's default color scheme
+                    template="plotly", 
                 )
 
                 st.plotly_chart(fig)
@@ -328,12 +325,12 @@ if len(df.columns) > 2:
                     mime="image/png"
                 )
 
-    # Assuming your years range and chart type selection are already set
-    elif chart_type == "Line Chart":
+    # For Time Series chart
+    elif chart_type == "Time Series":
         if not selected_counties:
             st.warning("Please select at least one county.")
         elif len(selected_attributes) != 1:
-            st.warning("Please select exactly one attribute for the line chart.")
+            st.warning("Please select exactly one attribute for the Time Series.")
         else:
             attribute = selected_attributes[0]
             years = list(range(min_year, max_year + 1))
@@ -371,23 +368,23 @@ if len(df.columns) > 2:
 
             fig.update_layout(
                 title=f"Trends Over Time for {attribute}",
-                title_x=0.5,  # Center the title horizontally
-                title_xanchor="center",  # Ensure the title is anchored in the center
+                title_x=0.5,  
+                title_xanchor="center",
                 title_font=dict(
-                    size=24,  # Set the title font size (adjust as needed)
-                    color="black",  # Optional: set the title color
+                    size=24,  
+                    color="black",  
                 ),
                 xaxis_title="Year",
                 yaxis_title=attribute,
                 showlegend=True,
                 template="plotly",
                 xaxis=dict(
-                    tickmode='array',  # Use a custom array for ticks
-                    tickvals=years,    # Specify the years to show on the x-axis
-                    ticktext=[str(year) for year in years],  # Show each year as a label
+                    tickmode='array', 
+                    tickvals=years,   
+                    ticktext=[str(year) for year in years], 
                 ),
-                width=1200,  # Set the width of the plot
-                height=600,  # Set the height of the plot
+                width=1200, 
+                height=600,  
             )
 
 
@@ -396,7 +393,7 @@ if len(df.columns) > 2:
             # Provide the option to download the chart
             image_buf = save_chart_as_image(fig)
             st.download_button(
-                label="Download Line Chart as Image",
+                label="Download Time Series Chart as Image",
                 data=image_buf,
                 file_name=f"{attribute}_line_chart.png",
                 mime="image/png"
