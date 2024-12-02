@@ -50,7 +50,7 @@ st.markdown(
 st.subheader("Overview")
 st.markdown("""
 This website generates annotated percentile charts of health indicators for the United States and its territories. Data for these charts 
-has been compiled by the [County Health Rankings (CHR) project](https://www.countyhealthrankings.org/health-data/methodology-and-sources/data-documentation), , a service of the University of Wisconsin's Population Health Institute.
+has been compiled by the [County Health Rankings (CHR) project](https://www.countyhealthrankings.org/health-data/methodology-and-sources/data-documentation), a service of the University of Wisconsin's Population Health Institute.
 The CHR project maintains data on its website on various health indicators for each of the U.S's 3000+ counties and independent cities, dating to 2010
             
 This site provides interactive charts based on County Health Rankings (CHR) indicators for user-selected counties and states. Users can select a specific 
